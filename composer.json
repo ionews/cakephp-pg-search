@@ -1,0 +1,24 @@
+{
+    "name": "autopage/pg-search",
+    "description": "Busca Textual com PostgreSQL no CakePHP",
+    "type": "cakephp-plugin",
+    "license": "MIT",
+    "require": {
+        "php": ">=7.2",
+        "cakephp/cakephp": "^4.2.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "PgSearch\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "PgSearch\\Test\\": "tests/",
+            "Cake\\Test\\": "vendor/cakephp/cakephp/tests/"
+        }
+    }
+}
