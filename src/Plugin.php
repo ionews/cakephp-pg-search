@@ -1,12 +1,12 @@
 <?php
 declare(strict_types=1);
 
-namespace PgSearch;
+namespace Autopage\PgSearch;
 
+use Autopage\PgSearch\Database\Type\TsvectorType;
 use Cake\Core\BasePlugin;
 use Cake\Core\PluginApplicationInterface;
 use Cake\Database\TypeFactory;
-use PgSearch\Database\Type\TsvectorType;
 
 /**
  * Plugin for PgSearch

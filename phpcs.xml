@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<ruleset name="Autopage">
+    <config name="installed_paths" value="../../cakephp/cakephp-codesniffer"/>
+
+    <ini name="memory_limit" value="512M"/>
+
+    <rule ref="CakePHP"/>
+
+    <!-- Preferencias da equipe -->
+
+    <!-- Permite doublespace para permitir alinhamento de atribuições -->
+    <rule ref="CakePHP.WhiteSpace.TabAndSpace.DoubleSpace">
+        <severity>0</severity>
+        <exclude-pattern>*/config/*</exclude-pattern>
+    </rule>
+
+    <!-- Permite linhas com mais de 120 caracteres -->
+    <rule ref="Generic.Files.LineLength">
+        <severity>0</severity>
+    </rule>
+
+    <!-- Permite arquivo com mais de uma classe declarada nos testes -->
+    <rule ref="PSR1.Classes.ClassDeclaration.MultipleClasses">
+        <exclude-pattern>*/tests/*</exclude-pattern>
+    </rule>
+
+    <!-- Permite arquivo com nome diferente da classe nos testes e migrations -->
+    <rule ref="Squiz.Classes.ClassFileName.NoMatch">
+        <exclude-pattern>*/tests/*</exclude-pattern>
+        <exclude-pattern>*/config/*</exclude-pattern>
+    </rule>
+
+    <!-- Configurações, em especial migrations, não precisam de namespaces -->
+    <rule ref="PSR1.Classes.ClassDeclaration.MissingNamespace">
+        <exclude-pattern>*/config/*</exclude-pattern>
+    </rule>
+</ruleset>

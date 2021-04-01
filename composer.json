@@ -12,12 +12,12 @@
     },
     "autoload": {
         "psr-4": {
-            "PgSearch\\": "src/"
+            "Autopage\\PgSearch\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "PgSearch\\Test\\": "tests/",
+            "Autopage\\PgSearch\\Test\\": "tests/",
             "Cake\\Test\\": "vendor/cakephp/cakephp/tests/"
         }
     }

@@ -9,20 +9,21 @@ declare(strict_types=1);
  *  - Alteração deve ser propagada
  *  - Exclusão deve ser propagada
  */
-namespace PgSearch\Model\Behavior;
+namespace Autopage\PgSearch\Model\Behavior;
 
 use ArrayObject;
+use Autopage\PgSearch\Exception\IndexException;
+use Autopage\PgSearch\Exception\ReindexException;
+use Autopage\PgSearch\Exception\SetupException;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\RepositoryInterface;
 use Cake\Event\EventInterface;
-use Cake\Log\Log;
 use Cake\ORM\Behavior;
 use Cake\ORM\Exception\PersistenceFailedException;
 use Cake\ORM\Locator\LocatorAwareTrait;
-use Cake\ORM\TableRegistry;
 use Cake\Utility\Inflector;
-use Throwable;
 use RuntimeException;
+use Throwable;
 
 class SearchableBehavior extends Behavior
 {
@@ -53,6 +54,7 @@ class SearchableBehavior extends Behavior
         'mapper' => null,
         'doIndex' => true,
         'doDeindex' => false,
+        'implementedMethods' => [],
     ];
 
     /**
@@ -67,6 +69,7 @@ class SearchableBehavior extends Behavior
     {
         $sourceName = $entity->getSource();
         $target = $this->getRepository();
+        $pk = $entity->get($this->getSourcePk());
 
         // Verifica se o registro deve passar pelo behavior
         $doIndex = $this->getConfig('doIndex');
@@ -85,41 +88,27 @@ class SearchableBehavior extends Behavior
         }
 
         if ($doDeindex) {
-            if (!$target->delete($entity)) {
-                Log::write('error', "Não foi possível excluir do índice o registro '{$entity->id}' de '{$sourceName}'.");
+            if (!$this->deleteIndexedByFk($entity)) {
+                throw new DeindexException("Não foi possível excluir do índice o registro '{$pk}' de '{$sourceName}'.");
             }
 
             return true;
         }
 
-        $pk = $entity->get($this->getSourcePk);
-        $mapper = $this->getConfig('mapper');
-        if ($mapper && !is_callable($mapper)) {
-            throw new RuntimeException('O mapper informado precisa ser callable. Mapper: ' . print_r($mapper, true));
-        }
-
         try {
-            $entry = $entity;
-            if ($mapper) {
-                $entry = call_user_func($mapper, $entity);
-            }
-
-            // Nada para indexar? só retorna, sem log
+            $entry = $this->buildEntry($entity);
             if (empty($entry)) {
                 return true;
             }
 
-            // Indexado com sucesso
             if ($target->save($entry)) {
                 return true;
             }
-
-            Log::write('error', "Não foi possível indexar o registro '{$pk}' de '{$sourceName}'.");
         } catch (Throwable $e) {
-            Log::write('error', "Falha ao indexar o registro '{$pk}' de '{$sourceName}'. \nMotivo: " . $e->getMessage());
+            throw new IndexException("Falha ao indexar o registro '{$pk}' de '{$sourceName}'. \nMotivo: " . $e->getMessage(), 500, $e);
         }
 
-        return true;
+        throw new IndexException("Não foi possível indexar o registro '{$pk}' de '{$sourceName}'.");
     }
 
     /**
@@ -132,21 +121,22 @@ class SearchableBehavior extends Behavior
      */
     public function afterDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options)
     {
-        $targetName = $this->getRepository()->getTable();
-        $pk = $this->getSourcePk();
+        $sourceName = $entity->getSource();
+        $pk = $entity->get($this->getSourcePk());
 
-        if (empty($entity->get($pk))) {
+        if (empty($pk)) {
             return true;
         }
 
         try {
-            if (!$this->deleteIndexedByFk($entity)) {
-                Log::write('error', "Não foi possível excluir do índice o registro vinculado a '{$pk}' em '{$targetName}'.");
+            if ($this->deleteIndexedByFk($entity)) {
+                return true;
             }
         } catch (Throwable $e) {
-            Log::write('error', "Falha ao excluir o registro vinculado a '{$pk}' de '{$targetName}'. \nMotivo: " . $e->getMessage());
+            throw new DeindexException("Falha ao excluir o registro vinculado a '{$pk}' de '{$sourceName}'. \nMotivo: " . $e->getMessage(), 500, $e);
         }
 
+        throw new DeindexException("Não foi possível excluir do índice o registro vinculado a '{$pk}' em '{$sourceName}'.");
         return true;
     }
 
@@ -162,7 +152,7 @@ class SearchableBehavior extends Behavior
     public function getRepository(): RepositoryInterface
     {
         $source = $this->table()->getAlias();
-        $target = $this->getConfig('target') ?: $source . 'Search';
+        $target = $this->getConfig('target') ?: $source . 'Searches';
 
         return $this->getTableLocator()->get($target);
     }
@@ -183,7 +173,7 @@ class SearchableBehavior extends Behavior
      */
     public function getRepositoryFk(): string
     {
-        $fK = $this->getConfig('foreign_key');
+        $fk = $this->getConfig('foreign_key');
         if (!$fk) {
             $fk = Inflector::singularize($this->table()->getTable()) . '_' . $this->getSourcePk();
         }
@@ -197,7 +187,7 @@ class SearchableBehavior extends Behavior
      *
      * @return string
      */
-    protected function getSourcePk(): string
+    public function getSourcePk(): string
     {
         $pk = $this->table()->getPrimaryKey();
         if (is_array($pk)) {
@@ -205,6 +195,59 @@ class SearchableBehavior extends Behavior
         }
 
         return $pk;
+    }
+
+    /**
+     * Cria uma entrada para o repositório indexado.
+     * Se configurado, utiliza o mapper.
+     *
+     * @param  \Cake\Datasource\EntityInterface $entity Entidade original
+     * @return \Cake\Datasource\EntityInterface $entry
+     */
+    protected function buildEntry(EntityInterface $entity): EntityInterface
+    {
+        $mapper = $this->getConfig('mapper');
+        if ($mapper && !is_callable($mapper)) {
+            throw new SetupException('O mapper informado precisa ser callable. Mapper: ' . print_r($mapper, true));
+        }
+
+        $defaultMapper = function ($entity) {
+            $entry = $this->getRepository()->newEntity($entity->toArray());
+            $entry->set($this->getRepositoryFk(), $entity->get($this->getSourcePk()));
+
+            return $entry;
+        };
+
+        if (!$mapper) {
+            $mapper = $defaultMapper;
+        }
+
+        $target = $this->getRepository();
+        $entry = call_user_func($mapper, $entity);
+        if (!is_a($entry, $target->getEntityClass())) {
+            throw new SetupException("O resultado do mapper deve ser uma instância compatível com '{$target->getEntityClass()}'.");
+        }
+
+        $pk = $target->getPrimaryKey();
+        if (is_array($pk)) {
+            $pk = $pk[0];
+        }
+
+        if ($entry->get($pk) !== null) {
+            return $entry;
+        }
+
+        $exists = $target->find()
+            ->where([
+                $this->getRepositoryFk() => $entity->get($this->getSourcePk()),
+            ])
+            ->first();
+
+        if ($exists) {
+            $entry->set($pk, $exists->get($pk));
+        }
+
+        return $entry;
     }
 
     /**
@@ -219,7 +262,7 @@ class SearchableBehavior extends Behavior
         $repository = $this->getRepository();
         $pk = $entity->get($this->getSourcePk());
         if (empty($pk)) {
-            throw new RuntimeException("Não é possível remover do índice registro sem chave primária.");
+            throw new DeindexException("Não é possível remover do índice registro sem chave primária.");
         }
 
         $fk = $this->getRepositoryFk();

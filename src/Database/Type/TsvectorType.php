@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace PgSearch\Database\Type;
+namespace Autopage\PgSearch\Database\Type;
 
 use Cake\Core\Configure;
 use Cake\Database\DriverInterface;
@@ -9,6 +9,7 @@ use Cake\Database\Expression\FunctionExpression;
 use Cake\Database\ExpressionInterface;
 use Cake\Database\Type\BaseType;
 use Cake\Database\Type\ExpressionTypeInterface;
+use InvalidArgumentException;
 
 /**
  * Mapeia o tipo tsvector para a função/expressão
@@ -30,7 +31,7 @@ class TsvectorType extends BaseType implements ExpressionTypeInterface
     {
         parent::__construct($name);
 
-        $this->searchConfig = Configure::read('PgSearch.fts_config');
+        $this->searchConfig = Configure::read('PgSearch.config_name');
     }
 
     /**
@@ -45,12 +46,23 @@ class TsvectorType extends BaseType implements ExpressionTypeInterface
      */
     public function toPHP($value, DriverInterface $driver)
     {
+        if ($value === null || empty($value)) {
+            return null;
+        }
+
         $tokens = [];
-        if (!empty($value)) {
-            foreach (explode(' ', $value) as $item) {
-                [$token, $posicoes] = explode(':', $item);
-                $tokens[] = trim($token, '\'');
+        foreach (explode(' ', $value) as $item) {
+            if (strpos($item, ':') === false) {
+                throw new InvalidArgumentException(sprintf(
+                    'The value `%s` is not a valid tsvector',
+                    $value
+                ));
             }
+
+            [$token, $pos] = explode(':', $item);
+            $token = trim($token, '\'');
+            $pos = explode(',', $pos);
+            $tokens[$token] = array_map('intval', $pos);
         }
 
         return $tokens;
@@ -59,9 +71,33 @@ class TsvectorType extends BaseType implements ExpressionTypeInterface
     /**
      * @inheritDoc
      */
+    public function manyToPHP(array $values, array $fields, DriverInterface $driver): array
+    {
+        foreach ($fields as $field) {
+            if (!isset($values[$field])) {
+                continue;
+            }
+
+            $values[$field] = $this->toPHP($values[$field], $driver);
+        }
+
+        return $values;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function marshal($value)
     {
-        return $value;
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_array($value)) {
+            return implode(' ', $value);
+        }
+
+        return (string)$value;
     }
 
     /**
@@ -69,11 +105,15 @@ class TsvectorType extends BaseType implements ExpressionTypeInterface
      */
     public function toDatabase($value, DriverInterface $driver)
     {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
         if (is_array($value)) {
             return implode(' ', $value);
         }
 
-        return $value;
+        return (string)$value;
     }
 
     /**
@@ -83,14 +123,12 @@ class TsvectorType extends BaseType implements ExpressionTypeInterface
      * Caso seja passada um array, faz a conversão usando implode, sem
      * nenhum tratamento especial.
      *
-     * @param  string|array|null $value Valor para ser persistido
+     * @param  string|array $value Valor para ser persistido
      * @return \Cake\Database\ExpressionInterface
      */
     public function toExpression($value): ExpressionInterface
     {
-        if (is_array($value)) {
-            $value = implode(' ', $value);
-        }
+        $value = $this->marshal($value);
 
         $params = [];
         if ($this->searchConfig) {
