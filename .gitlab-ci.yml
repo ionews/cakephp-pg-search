@@ -45,7 +45,7 @@ check:style:
       - vendor/
   script:
     - composer install -o
-    - ./vendor/bin/phpcs -n -p -s --report-summary --report-source --report-junit=report.xml --extensions=php ./src ./plugins ./tests
+    - ./vendor/bin/phpcs -n -p -s --report-summary --report-source --report-junit=report.xml --extensions=php ./src ./tests
   artifacts:
     expire_in: 6 months
     when: always
