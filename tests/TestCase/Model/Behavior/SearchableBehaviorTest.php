@@ -3,15 +3,7 @@ declare(strict_types=1);
 
 namespace Autopage\PgSearch\Model\Behavior;
 
-use Cake\Datasource\EntityInterface;
-use Cake\Datasource\QueryInterface;
-use Cake\I18n\I18n;
-use Cake\ORM\Entity;
-use Cake\ORM\Locator\TableLocator;
 use Cake\TestSuite\TestCase;
-use Cake\Validation\Validator;
-use PgTestApp\Model\Entity\Article;
-use PgTestApp\Model\Table\ArticlesTable;
 
 /**
  * Test for the Searchable Behavior.

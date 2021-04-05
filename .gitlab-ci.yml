@@ -25,7 +25,7 @@ check:static:
       - vendor/
   script:
     - composer install -o
-    - ./vendor/bin/phpstan analyse --no-progress --memory-limit='-1' --error-format=junit src/ tests/ > ./report.xml
+    - ./vendor/bin/phpstan analyse --no-progress --memory-limit='-1' --error-format=junit src/ > ./report.xml
   artifacts:
     expire_in: 6 months
     when: always

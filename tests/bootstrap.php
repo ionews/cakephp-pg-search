@@ -17,7 +17,7 @@ $findRoot = function ($root) {
         }
     } while ($root !== $lastRoot);
 
-    throw new Exception("Cannot find the root of the application, unable to run tests");
+    throw new Exception('Cannot find the root of the application, unable to run tests');
 };
 $root = $findRoot(__FILE__);
 unset($findRoot);
@@ -53,14 +53,13 @@ require_once ROOT . '/vendor/cakephp/cakephp/src/basics.php';
 
 $_SERVER['PHP_SELF'] = '/';
 
+use Autopage\PgSearch\Database\Type\TsvectorType;
 use Cake\Cache\Cache;
 use Cake\Core\Configure;
+use Cake\Database\TypeFactory;
 use Cake\Datasource\ConnectionManager;
 use Cake\Log\Engine\FileLog;
 use Cake\Log\Log;
-use Cake\Routing\Router;
-use Cake\Database\TypeFactory;
-use Autopage\PgSearch\Database\Type\TsvectorType;
 
 Configure::write('App', [
     'namespace' => 'Autopage\\PgSearch\\Test\\App',

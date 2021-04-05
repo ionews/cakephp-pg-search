@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+
 /**
  * Behavior que vincula duas Table, sendo a primeira a fonte dos
  * dados e a segunda o destino das informações para indexação FTS.
@@ -12,17 +13,15 @@ declare(strict_types=1);
 namespace Autopage\PgSearch\Model\Behavior;
 
 use ArrayObject;
+use Autopage\PgSearch\Exception\DeindexException;
 use Autopage\PgSearch\Exception\IndexException;
-use Autopage\PgSearch\Exception\ReindexException;
 use Autopage\PgSearch\Exception\SetupException;
 use Cake\Datasource\EntityInterface;
-use Cake\Datasource\RepositoryInterface;
 use Cake\Event\EventInterface;
 use Cake\ORM\Behavior;
-use Cake\ORM\Exception\PersistenceFailedException;
 use Cake\ORM\Locator\LocatorAwareTrait;
+use Cake\ORM\Table;
 use Cake\Utility\Inflector;
-use RuntimeException;
 use Throwable;
 
 class SearchableBehavior extends Behavior
@@ -60,9 +59,9 @@ class SearchableBehavior extends Behavior
     /**
      * Envia dados do registro criado/alterado para o índice
      *
-     * @param  \Cake\Event\EventInterface       $event
-     * @param  \Cake\Datasource\EntityInterface $entity
-     * @param  \ArrayObject                     $options
+     * @param  \Cake\Event\EventInterface       $event Evento capturado
+     * @param  \Cake\Datasource\EntityInterface $entity Entitdade relacionada ao behavior
+     * @param  \ArrayObject                     $options Opções extras opcionais
      * @return bool
      */
     public function afterSave(EventInterface $event, EntityInterface $entity, ArrayObject $options)
@@ -114,9 +113,9 @@ class SearchableBehavior extends Behavior
     /**
      * Exclui o registro indexado relacionado ao registro excluido
      *
-     * @param  \Cake\Event\EventInterface       $event
-     * @param  \Cake\Datasource\EntityInterface $entity
-     * @param  \ArrayObject                     $options
+     * @param  \Cake\Event\EventInterface       $event Evento capturado
+     * @param  \Cake\Datasource\EntityInterface $entity Entitdade relacionada ao behavior
+     * @param  \ArrayObject                     $options Opções extras opcionais
      * @return bool
      */
     public function afterDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options)
@@ -137,7 +136,6 @@ class SearchableBehavior extends Behavior
         }
 
         throw new DeindexException("Não foi possível excluir do índice o registro vinculado a '{$pk}' em '{$sourceName}'.");
-        return true;
     }
 
     /**
@@ -147,9 +145,9 @@ class SearchableBehavior extends Behavior
      * Se não estiver configurado, utiliza com fallback o nome da tabela
      * vinculada + sufixo 'Search'.
      *
-     * @return \Cake\Datasource\RepositoryInterface
+     * @return \Cake\ORM\Table
      */
-    public function getRepository(): RepositoryInterface
+    public function getRepository(): Table
     {
         $source = $this->table()->getAlias();
         $target = $this->getConfig('target') ?: $source . 'Searches';
@@ -262,7 +260,7 @@ class SearchableBehavior extends Behavior
         $repository = $this->getRepository();
         $pk = $entity->get($this->getSourcePk());
         if (empty($pk)) {
-            throw new DeindexException("Não é possível remover do índice registro sem chave primária.");
+            throw new DeindexException('Não é possível remover do índice registro sem chave primária.');
         }
 
         $fk = $this->getRepositoryFk();

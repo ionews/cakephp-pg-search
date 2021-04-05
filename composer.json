@@ -30,7 +30,7 @@
         ],
         "cs-check": "phpcs --colors -p src/ tests/",
         "cs-fix": "phpcbf --colors -p src/ tests/",
-        "phpstan": "phpstan.phar analyse src/",
+        "phpstan": "phpstan.phar analyse --configuration ./phpstan.neon --memory-limit='-1' src/",
         "test": "phpunit",
         "test-coverage": "phpunit --coverage-clover=clover.xml"
     },

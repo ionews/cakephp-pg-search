@@ -42,7 +42,7 @@ class TsvectorType extends BaseType implements ExpressionTypeInterface
      *
      * @param  string|null $value  Valor do banco
      * @param  \Cake\Database\DriverInterface $driver Instãncia do driver (Postgres)
-     * @return array Lista de tokens
+     * @return array|null Lista de tokens
      */
     public function toPHP($value, DriverInterface $driver)
     {

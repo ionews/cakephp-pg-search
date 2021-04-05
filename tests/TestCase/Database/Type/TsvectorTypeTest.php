@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Autopage\PgSearch\Test\TestCase\Database\Type;
 
-use Autopage\PgSearch\Database\Type\Tsvector;
 use Cake\Database\TypeFactory;
 use Cake\TestSuite\TestCase;
 use PDO;
@@ -42,8 +41,6 @@ class TsvectorTypeTest extends TestCase
      */
     public function testToPHP()
     {
-
-        // 'adipisc':7,34 'aliqua':19 'aliquet':28 'amet':5,31 'auctor':22 'consectetur':6 'cras':33 'cursus':26 'dolor':3,17 'dui':47 'eget':29 'eiusmod':11 'elit':8 'enim':35 'et':16 'eu':36 'faucibus':48 'id':25 'incididunt':13 'ipsum':2 'justo':46 'labor':15
         $this->assertNull($this->type->toPHP(null, $this->driver));
 
         $result = $this->type->toPHP("'aliqua':19 'aliquet':28", $this->driver);
