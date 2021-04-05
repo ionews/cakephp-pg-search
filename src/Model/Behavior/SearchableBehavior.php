@@ -103,6 +103,8 @@ class SearchableBehavior extends Behavior
             if ($target->save($entry)) {
                 return true;
             }
+        } catch (SetupException $e) {
+            throw $e;
         } catch (Throwable $e) {
             throw new IndexException("Falha ao indexar o registro '{$pk}' de '{$sourceName}'. \nMotivo: " . $e->getMessage(), 500, $e);
         }
@@ -259,10 +261,6 @@ class SearchableBehavior extends Behavior
     {
         $repository = $this->getRepository();
         $pk = $entity->get($this->getSourcePk());
-        if (empty($pk)) {
-            throw new DeindexException('Não é possível remover do índice registro sem chave primária.');
-        }
-
         $fk = $this->getRepositoryFk();
 
         return $repository->deleteAll([$fk => $pk]) >= 0;
