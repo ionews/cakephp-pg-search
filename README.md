@@ -1,5 +1,7 @@
 # Busca Textual com PostgreSQL no CakePHP
 
+[![pipeline status](https://git.autopage.inf.br/ionews/pg-search/badges/main/pipeline.svg)](https://git.autopage.inf.br/ionews/pg-search/-/commits/main) [![coverage report](https://git.autopage.inf.br/ionews/pg-search/badges/main/coverage.svg)](https://git.autopage.inf.br/ionews/pg-search/-/commits/main)
+
 ## Instalar
 
 Inclua o plugin como dependência
