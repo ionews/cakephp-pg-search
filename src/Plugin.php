@@ -24,6 +24,8 @@ class Plugin extends BasePlugin
      */
     public function bootstrap(PluginApplicationInterface $app): void
     {
+        parent::bootstrap($app);
+
         if (TypeFactory::getMap('tsvector') === null) {
             TypeFactory::map('tsvector', TsvectorType::class);
         }
