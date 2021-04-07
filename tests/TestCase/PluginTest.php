@@ -3,12 +3,10 @@ declare(strict_types=1);
 
 namespace Autopage\PgSearch\Test\TestCase;
 
-use Cake\Http\BaseApplication;
 use Autopage\PgSearch\Plugin as PluginPgSearch;
-use Cake\Core\Configure;
 use Cake\Database\TypeFactory;
+use Cake\Http\BaseApplication;
 use Cake\TestSuite\TestCase;
-use PDO;
 
 /**
  * Test for the Plugin setup.
@@ -16,16 +14,7 @@ use PDO;
 class PluginTest extends TestCase
 {
     /**
-     * Setup
-     *
-     * @return void
-     */
-    public function setUp(): void
-    {
-        parent::setUp();
-    }
-
-    /**
+     * Test initialization
      *
      * @return void
      */

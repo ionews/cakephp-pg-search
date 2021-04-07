@@ -165,21 +165,21 @@ class TsvectorTypeTest extends TestCase
         $this->assertInstanceOf(\Cake\Database\Expression\FunctionExpression::class, $result);
         $this->assertSame('to_tsvector', $result->getName());
         $this->assertSame(2, $result->count());
-        $this->assertSame("to_tsvector(:param0)", $result->sql($binder));
+        $this->assertSame('to_tsvector(:param0)', $result->sql($binder));
 
         $binder = new \Cake\Database\ValueBinder();
         $result = $this->type->toExpression(['Lorem', 'ipsum']);
         $this->assertInstanceOf(\Cake\Database\Expression\FunctionExpression::class, $result);
         $this->assertSame('to_tsvector', $result->getName());
         $this->assertSame(2, $result->count());
-        $this->assertSame("to_tsvector(:param0)", $result->sql($binder));
+        $this->assertSame('to_tsvector(:param0)', $result->sql($binder));
 
         $binder = new \Cake\Database\ValueBinder();
         $result = $this->type->toExpression(null);
         $this->assertInstanceOf(\Cake\Database\Expression\FunctionExpression::class, $result);
         $this->assertSame('to_tsvector', $result->getName());
         $this->assertSame(2, $result->count());
-        $this->assertSame("to_tsvector(:param0)", $result->sql($binder));
+        $this->assertSame('to_tsvector(:param0)', $result->sql($binder));
 
         $backup = Configure::read('PgSearch.config_name');
         Configure::write('PgSearch.config_name', 'tsvector_test');
@@ -191,7 +191,7 @@ class TsvectorTypeTest extends TestCase
         $this->assertInstanceOf(\Cake\Database\Expression\FunctionExpression::class, $result);
         $this->assertSame('to_tsvector', $result->getName());
         $this->assertSame(3, $result->count());
-        $this->assertSame("to_tsvector(:param0, :param1)", $result->sql($binder));
+        $this->assertSame('to_tsvector(:param0, :param1)', $result->sql($binder));
 
         Configure::write('PgSearch.config_name', $backup);
     }
