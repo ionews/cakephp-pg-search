@@ -6,3 +6,6 @@
 /config/Migrations/schema-dump-default.lock
 /vendor/
 /.idea/
+/clover.xml
+/cobertura.xml
+/report.xml

@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Autopage\PgSearch\Test\TestCase\Database\Type;
 
+use Autopage\PgSearch\Database\Type\TsvectorType;
+use Cake\Core\Configure;
 use Cake\Database\TypeFactory;
 use Cake\TestSuite\TestCase;
 use PDO;
@@ -149,6 +151,49 @@ class TsvectorTypeTest extends TestCase
 
         $result = $this->type->marshal(['Lorem', 'ipsum']);
         $this->assertSame('Lorem ipsum', $result);
+    }
+
+    /**
+     * Test toExpression
+     *
+     * @return void
+     */
+    public function testToExpression()
+    {
+        $binder = new \Cake\Database\ValueBinder();
+        $result = $this->type->toExpression('house');
+        $this->assertInstanceOf(\Cake\Database\Expression\FunctionExpression::class, $result);
+        $this->assertSame('to_tsvector', $result->getName());
+        $this->assertSame(2, $result->count());
+        $this->assertSame("to_tsvector(:param0)", $result->sql($binder));
+
+        $binder = new \Cake\Database\ValueBinder();
+        $result = $this->type->toExpression(['Lorem', 'ipsum']);
+        $this->assertInstanceOf(\Cake\Database\Expression\FunctionExpression::class, $result);
+        $this->assertSame('to_tsvector', $result->getName());
+        $this->assertSame(2, $result->count());
+        $this->assertSame("to_tsvector(:param0)", $result->sql($binder));
+
+        $binder = new \Cake\Database\ValueBinder();
+        $result = $this->type->toExpression(null);
+        $this->assertInstanceOf(\Cake\Database\Expression\FunctionExpression::class, $result);
+        $this->assertSame('to_tsvector', $result->getName());
+        $this->assertSame(2, $result->count());
+        $this->assertSame("to_tsvector(:param0)", $result->sql($binder));
+
+        $backup = Configure::read('PgSearch.config_name');
+        Configure::write('PgSearch.config_name', 'tsvector_test');
+        TypeFactory::map('tsvector', TsvectorType::class);
+        $this->type = TypeFactory::build('tsvector');
+
+        $binder = new \Cake\Database\ValueBinder();
+        $result = $this->type->toExpression('house');
+        $this->assertInstanceOf(\Cake\Database\Expression\FunctionExpression::class, $result);
+        $this->assertSame('to_tsvector', $result->getName());
+        $this->assertSame(3, $result->count());
+        $this->assertSame("to_tsvector(:param0, :param1)", $result->sql($binder));
+
+        Configure::write('PgSearch.config_name', $backup);
     }
 
     /**

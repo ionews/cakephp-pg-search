@@ -158,8 +158,6 @@ if (file_exists($root . '/config/bootstrap.php')) {
     require $root . '/config/bootstrap.php';
 }
 
-TypeFactory::map('tsvector', TsvectorType::class);
-
 $application = new \Autopage\PgSearch\Test\App\Application(CONFIG);
 $application->bootstrap();
 $application->pluginBootstrap();

@@ -46,7 +46,7 @@ class TsvectorType extends BaseType implements ExpressionTypeInterface
      */
     public function toPHP($value, DriverInterface $driver)
     {
-        if ($value === null || empty($value)) {
+        if (empty($value)) {
             return null;
         }
 

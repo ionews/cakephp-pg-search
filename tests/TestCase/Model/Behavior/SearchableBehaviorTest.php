@@ -256,6 +256,31 @@ class SearchableBehaviorTest extends TestCase
     }
 
     /**
+     * Tests deindex explicit call
+     *
+     * @return void
+     */
+    public function testDeindexSuccess()
+    {
+        $table = $this->getTableLocator()->get('Articles');
+        $table->addBehavior('Autopage/PgSearch.Searchable');
+        $behavior = $table->behaviors()->get('Searchable');
+        $behaviorTable = $behavior->getRepository();
+
+        $article = $table->get(1);
+
+        // Previous status
+        $indexed = $behaviorTable->find()->where(['article_id' => 1])->first();
+        $this->assertSame('First Article Indexed Body', $indexed->get('body'));
+
+        $table->deindexEntity($article);
+
+        // Final status
+        $indexed = $behaviorTable->find()->where(['article_id' => 1])->first();
+        $this->assertNull($indexed);
+    }
+
+    /**
      * Tests deindex using logical delete
      *
      * @return void

@@ -77,12 +77,14 @@ test:unit:
     CACHE_THROTTLE_URL: "array:///?prefix=throttle_"
   script:
     - composer install -n -o
-    - ./vendor/bin/phpunit --coverage-text --colors=never --log-junit="./report.xml"
+    - ./vendor/bin/phpunit --coverage-text --colors=never --log-junit="./report.xml" --coverage-clover="./clover.xml"
+    - /usr/bin/clover-to-cobertura < clover.xml > cobertura.xml
   artifacts:
     expire_in: 6 months
     when: always
     reports:
       junit: report.xml
+      cobertura: cobertura.xml
 
 release:
   stage: publish

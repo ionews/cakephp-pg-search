@@ -53,11 +53,17 @@ class SearchableBehavior extends Behavior
         'mapper' => null,
         'doIndex' => true,
         'doDeindex' => false,
-        'implementedMethods' => [],
+        'implementedMethods' => [
+            'indexEntity' => 'indexEntity',
+            'deindexEntity' => 'deindexEntity',
+        ],
     ];
 
     /**
-     * Envia dados do registro criado/alterado para o índice
+     * Determina se a entidade sendo registrada/alterada precisa
+     * ser indexada ou desindexada - ou ainda, nenhum dos dois.
+     *
+     * Invoca os métodos apropriados caso necessário.
      *
      * @param  \Cake\Event\EventInterface       $event Evento capturado
      * @param  \Cake\Datasource\EntityInterface $entity Entitdade relacionada ao behavior
@@ -66,10 +72,6 @@ class SearchableBehavior extends Behavior
      */
     public function afterSave(EventInterface $event, EntityInterface $entity, ArrayObject $options)
     {
-        $sourceName = $entity->getSource();
-        $target = $this->getRepository();
-        $pk = $entity->get($this->getSourcePk());
-
         // Verifica se o registro deve passar pelo behavior
         $doIndex = $this->getConfig('doIndex');
         if (is_callable($doIndex)) {
@@ -87,29 +89,14 @@ class SearchableBehavior extends Behavior
         }
 
         if ($doDeindex) {
-            if (!$this->deleteIndexedByFk($entity)) {
-                throw new DeindexException("Não foi possível excluir do índice o registro '{$pk}' de '{$sourceName}'.");
-            }
+            $this->deindexEntity($entity);
 
             return true;
         }
 
-        try {
-            $entry = $this->buildEntry($entity);
-            if (empty($entry)) {
-                return true;
-            }
+        $this->indexEntity($entity);
 
-            if ($target->save($entry)) {
-                return true;
-            }
-        } catch (SetupException $e) {
-            throw $e;
-        } catch (Throwable $e) {
-            throw new IndexException("Falha ao indexar o registro '{$pk}' de '{$sourceName}'. \nMotivo: " . $e->getMessage(), 500, $e);
-        }
-
-        throw new IndexException("Não foi possível indexar o registro '{$pk}' de '{$sourceName}'.");
+        return true;
     }
 
     /**
@@ -122,22 +109,64 @@ class SearchableBehavior extends Behavior
      */
     public function afterDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options)
     {
+        $this->deindexEntity($entity);
+
+        return true;
+    }
+
+    /**
+     * Envia dados do registro $entity para o índice apropriado
+     *
+     * @param  \Cake\Datasource\EntityInterface $entity Entitdade relacionada ao behavior
+     * @return void
+     */
+    public function indexEntity(EntityInterface $entity): void
+    {
+        $target = $this->getRepository();
         $sourceName = $entity->getSource();
         $pk = $entity->get($this->getSourcePk());
 
+        try {
+            $entry = $this->buildEntry($entity);
+            if (empty($entry)) {
+                return;
+            }
+
+            if ($target->save($entry)) {
+                return;
+            }
+        } catch (SetupException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            throw new IndexException("Falha ao indexar o registro '{$pk}' de '{$sourceName}'. \nMotivo: " . $e->getMessage(), 500, $e);
+        }
+
+        throw new IndexException("Não foi possível indexar o registro '{$pk}' de '{$sourceName}'.");
+    }
+
+    /**
+     * Exclui um registro do índice a partir da entidade relacionada
+     *
+     * @param  \Cake\Datasource\EntityInterface $entity Instância do registro
+     * relacionado.
+     * @return void
+     */
+    public function deindexEntity(EntityInterface $entity): void
+    {
+        $repository = $this->getRepository();
+        $sourceName = $entity->getSource();
+        $pk = $entity->get($this->getSourcePk());
+        $fk = $this->getRepositoryFk();
+
         if (empty($pk)) {
-            return true;
+            return;
         }
 
         try {
-            if ($this->deleteIndexedByFk($entity)) {
-                return true;
-            }
+            $repository->deleteAll([$fk => $pk]);
         } catch (Throwable $e) {
             throw new DeindexException("Falha ao excluir o registro vinculado a '{$pk}' de '{$sourceName}'. \nMotivo: " . $e->getMessage(), 500, $e);
         }
-
-        throw new DeindexException("Não foi possível excluir do índice o registro vinculado a '{$pk}' em '{$sourceName}'.");
     }
 
     /**
@@ -248,21 +277,5 @@ class SearchableBehavior extends Behavior
         }
 
         return $entry;
-    }
-
-    /**
-     * Exclui um registro do índice a partir da entidade relacionada
-     *
-     * @param  \Cake\Datasource\EntityInterface $entity Instância do registro
-     * relacionado.
-     * @return bool
-     */
-    protected function deleteIndexedByFk($entity): bool
-    {
-        $repository = $this->getRepository();
-        $pk = $entity->get($this->getSourcePk());
-        $fk = $this->getRepositoryFk();
-
-        return $repository->deleteAll([$fk => $pk]) >= 0;
     }
 }
