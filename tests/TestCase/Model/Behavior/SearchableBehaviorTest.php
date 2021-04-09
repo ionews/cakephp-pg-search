@@ -122,7 +122,18 @@ class SearchableBehaviorTest extends TestCase
         $table->save($article);
 
         $articleIndexed = $behaviorTable->find()->where(['article_id' => 2])->first();
-        $this->assertSame($bodyMsg, $articleIndexed->get('body'));
+        $bodyVector = $articleIndexed->get('body');
+        $expected = [
+            'body' => [5],
+            'index' => [7],
+            'is' => [2],
+            'new' => [4],
+            'that' => [1],
+            'the' => [3],
+            'to' => [6],
+        ];
+
+        $this->assertSame($expected, $bodyVector);
     }
 
     /**
@@ -185,7 +196,7 @@ class SearchableBehaviorTest extends TestCase
     {
         $customMapper = function ($entity) {
             $entry = $this->getTableLocator()->get('ArticlesSearches')->newEmptyEntity();
-            $entry->body = mb_strtoupper($entity->body);
+            $entry->body = str_replace('index', 'idx', $entity->body);
             $entry->article_id = $entity->id;
 
             return $entry;
@@ -203,7 +214,18 @@ class SearchableBehaviorTest extends TestCase
         $table->save($article);
 
         $articleIndexed = $behaviorTable->find()->where(['article_id' => 2])->first();
-        $this->assertSame(mb_strtoupper($bodyMsg), $articleIndexed->get('body'));
+        $bodyVector = $articleIndexed->get('body');
+        $expected = [
+            'body' => [5],
+            'idx' => [7],
+            'is' => [2],
+            'new' => [4],
+            'that' => [1],
+            'the' => [3],
+            'to' => [6],
+        ];
+
+        $this->assertSame($expected, $bodyVector);
     }
 
     /**
@@ -271,7 +293,14 @@ class SearchableBehaviorTest extends TestCase
 
         // Previous status
         $indexed = $behaviorTable->find()->where(['article_id' => 1])->first();
-        $this->assertSame('First Article Indexed Body', $indexed->get('body'));
+        $expected = [
+            'article' => [2],
+            'body' => [4],
+            'first' => [1],
+            'indexed' => [3],
+        ];
+
+        $this->assertSame($expected, $indexed->get('body'));
 
         $table->deindexEntity($article);
 
@@ -298,7 +327,13 @@ class SearchableBehaviorTest extends TestCase
 
         // Previous status
         $indexed = $behaviorTable->find()->where(['article_id' => 1])->first();
-        $this->assertSame('First Article Indexed Body', $indexed->get('body'));
+        $expected = [
+            'article' => [2],
+            'body' => [4],
+            'first' => [1],
+            'indexed' => [3],
+        ];
+        $this->assertSame($expected, $indexed->get('body'));
 
         $article = $table->get(1);
         $article->set('body', 'Change without index.');
@@ -309,6 +344,16 @@ class SearchableBehaviorTest extends TestCase
         $this->assertNull($indexed);
 
         $bodyMsg = 'That is the new body to index.';
+        $bodyVector = [
+            'body' => [5],
+            'index' => [7],
+            'is' => [2],
+            'new' => [4],
+            'that' => [1],
+            'the' => [3],
+            'to' => [6],
+        ];
+
         $article = $table->get(2);
         $article->set('body', $bodyMsg);
 
@@ -316,7 +361,7 @@ class SearchableBehaviorTest extends TestCase
 
         // Indexing when conditions of 'doDeindex' are false
         $indexed = $behaviorTable->find()->where(['article_id' => 2])->first();
-        $this->assertSame($bodyMsg, $indexed->get('body'));
+        $this->assertSame($bodyVector, $indexed->get('body'));
     }
 
     /**

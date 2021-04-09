@@ -77,7 +77,7 @@ Configure::write('App', [
 ]);
 
 Configure::write('debug', true);
-Configure::write('Error.errorLevel', E_ALL & ~E_USER_DEPRECATED);
+Configure::write('Error.errorLevel', E_ALL);
 
 $TMP = new \Cake\Filesystem\Folder(TMP);
 $TMP->create(TMP . 'cache/models', 0777);
@@ -143,7 +143,7 @@ Log::setConfig($log);
 
 // Ensure default test connection is defined
 if (!getenv('db_dsn')) {
-    putenv('db_dsn=postgres://postgres@postgres/pgsearch?encoding=utf8');
+    putenv('db_dsn=Cake\Database\Connection://postgres@postgres/pgsearch?encoding=utf8&driver=Autopage\PgSearch\Database\Driver\Postgres');
 }
 
 ConnectionManager::setConfig('test', [

@@ -182,7 +182,7 @@ class TsvectorTypeTest extends TestCase
         $this->assertSame('to_tsvector(:param0)', $result->sql($binder));
 
         $backup = Configure::read('PgSearch.config_name');
-        Configure::write('PgSearch.config_name', 'tsvector_test');
+        Configure::write('PgSearch.config_name', 'pg_catalog.simple');
         TypeFactory::map('tsvector', TsvectorType::class);
         $this->type = TypeFactory::build('tsvector');
 
