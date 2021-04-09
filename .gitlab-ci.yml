@@ -69,7 +69,7 @@ test:unit:
     POSTGRES_DB: pgsearch
     POSTGRES_USER: runner
     POSTGRES_PASSWORD: "123"
-    db_dsn: "Cake\Database\Connection://runner:123@postgres/pgsearch?encoding=utf8&driver=Autopage\PgSearch\Database\Driver\Postgres"
+    db_dsn: "Cake\\Database\\Connection://runner:123@postgres/pgsearch?encoding=utf8&driver=Autopage\\PgSearch\\Database\\Driver\\Postgres"
     CACHE_DEFAULT_URL: "array:///?prefix=default_"
     CACHE_CAKECORE_URL: "array:///?prefix=core_"
     CACHE_CAKEMODEL_URL: "array:///?prefix=model_"
