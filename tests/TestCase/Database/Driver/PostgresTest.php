@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Autopage\PgSearch\Test\TestCase\Database\Driver;
 
-use Autopage\PgSearch\Database\Driver\Postgres;
 use Autopage\PgSearch\Database\Schema\PostgresSchemaDialect;
 use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\TestCase;

@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Autopage\PgSearch\Database\Schema;
 
-use Autopage\PgSearch\Database\Schema\TableSchema;
 use Cake\Database\Exception\DatabaseException;
 use Cake\Database\Schema\PostgresSchemaDialect as SchemaDialect;
 use Cake\Database\Schema\TableSchema as BaseSchema;
