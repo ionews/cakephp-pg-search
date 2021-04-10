@@ -3,9 +3,10 @@ declare(strict_types=1);
 
 namespace Autopage\PgSearch\Database\Schema;
 
+use Autopage\PgSearch\Database\Schema\TableSchema;
 use Cake\Database\Exception\DatabaseException;
 use Cake\Database\Schema\PostgresSchemaDialect as SchemaDialect;
-use Cake\Database\Schema\TableSchema;
+use Cake\Database\Schema\TableSchema as BaseSchema;
 
 /**
  * Estende o dialeto do Postgres para dar suporte
@@ -13,38 +14,6 @@ use Cake\Database\Schema\TableSchema;
  */
 class PostgresSchemaDialect extends SchemaDialect
 {
-    /**
-     * Tsvector column type
-     *
-     * @var string
-     */
-    public const TYPE_TSVECTOR = 'tsvector';
-
-    /**
-     * Gin - index type
-     *
-     * @var string
-     */
-    public const INDEX_GIN = 'gin';
-
-    /**
-     * Gist - index type
-     *
-     * @var string
-     */
-    public const INDEX_GIST = 'gist';
-
-    /**
-     * Names of the valid index types.
-     *
-     * @var array
-     */
-    protected static $_validIndexTypes = [
-        self::INDEX_GIN,
-        self::INDEX_GIST,
-        TableSchema::INDEX_INDEX,
-    ];
-
     /**
      * Convert a column definition to the abstract types.
      *
@@ -125,7 +94,7 @@ class PostgresSchemaDialect extends SchemaDialect
             return ['type' => TableSchema::TYPE_JSON, 'length' => null];
         }
         if (strpos($col, 'tsvector') !== false) {
-            return ['type' => self::TYPE_TSVECTOR, 'length' => null];
+            return ['type' => TableSchema::TYPE_TSVECTOR, 'length' => null];
         }
 
         $length = is_numeric($length) ? $length : null;
@@ -136,7 +105,7 @@ class PostgresSchemaDialect extends SchemaDialect
     /**
      * @inheritDoc
      */
-    public function columnSql(TableSchema $schema, string $name): string
+    public function columnSql(BaseSchema $schema, string $name): string
     {
         /** @var array $data */
         $data = $schema->getColumn($name);
@@ -158,7 +127,7 @@ class PostgresSchemaDialect extends SchemaDialect
             TableSchema::TYPE_UUID => ' UUID',
             TableSchema::TYPE_CHAR => ' CHAR',
             TableSchema::TYPE_JSON => ' JSONB',
-            self::TYPE_TSVECTOR => ' TSVECTOR',
+            TableSchema::TYPE_TSVECTOR => ' TSVECTOR',
         ];
 
         if (isset($typeMap[$data['type']])) {
@@ -258,7 +227,7 @@ class PostgresSchemaDialect extends SchemaDialect
     /**
      * @inheritDoc
      */
-    public function indexSql(TableSchema $schema, string $name): string
+    public function indexSql(BaseSchema $schema, string $name): string
     {
         /** @var array $data */
         $data = $schema->getIndex($name);
@@ -268,10 +237,10 @@ class PostgresSchemaDialect extends SchemaDialect
         );
 
         $type = '';
-        if ($data['type'] === self::INDEX_GIN) {
+        if ($data['type'] === TableSchema::INDEX_GIN) {
             $type = 'GIN ';
         }
-        if ($data['type'] === self::INDEX_GIST) {
+        if ($data['type'] === TableSchema::INDEX_GIST) {
             $type = 'GIST ';
         }
 
