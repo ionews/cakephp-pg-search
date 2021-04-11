@@ -475,6 +475,16 @@ class PostgresSchemaDialectTest extends TestCase
                 ['type' => 'tsvector', 'null' => true],
                 '"body" TSVECTOR DEFAULT NULL',
             ],
+            [
+                'body',
+                ['type' => 'tsvector', 'null' => true, 'default' => null],
+                '"body" TSVECTOR DEFAULT NULL',
+            ],
+            [
+                'body',
+                ['type' => 'tsvector', 'null' => false, 'default' => null],
+                '"body" TSVECTOR NOT NULL',
+            ],
         ];
     }
 
