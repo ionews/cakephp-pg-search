@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Autopage\PgSearch\Model\Behavior;
 
 use Autopage\PgSearch\Exception\SetupException;
+use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\TestCase;
 
 /**
@@ -20,6 +21,19 @@ class SearchableBehaviorTest extends TestCase
         'core.Articles',
         'plugin.Autopage\PgSearch.ArticlesSearches',
     ];
+
+    /**
+     * Setup
+     *
+     * @return void
+     */
+    public function setUp(): void
+    {
+        parent::setUp();
+
+        $config = ConnectionManager::getConfig('test');
+        $this->skipIf(strpos($config['driver'], 'Postgres') === false, 'Not using Postgres for test config');
+    }
 
     /**
      * Tests behavior with default options
@@ -124,13 +138,9 @@ class SearchableBehaviorTest extends TestCase
         $articleIndexed = $behaviorTable->find()->where(['article_id' => 2])->first();
         $bodyVector = $articleIndexed->get('body');
         $expected = [
-            'body' => [5],
+            'bodi' => [5],
             'index' => [7],
-            'is' => [2],
             'new' => [4],
-            'that' => [1],
-            'the' => [3],
-            'to' => [6],
         ];
 
         $this->assertSame($expected, $bodyVector);
@@ -216,13 +226,9 @@ class SearchableBehaviorTest extends TestCase
         $articleIndexed = $behaviorTable->find()->where(['article_id' => 2])->first();
         $bodyVector = $articleIndexed->get('body');
         $expected = [
-            'body' => [5],
+            'bodi' => [5],
             'idx' => [7],
-            'is' => [2],
             'new' => [4],
-            'that' => [1],
-            'the' => [3],
-            'to' => [6],
         ];
 
         $this->assertSame($expected, $bodyVector);
@@ -294,10 +300,10 @@ class SearchableBehaviorTest extends TestCase
         // Previous status
         $indexed = $behaviorTable->find()->where(['article_id' => 1])->first();
         $expected = [
-            'article' => [2],
-            'body' => [4],
+            'articl' => [2],
+            'bodi' => [4],
             'first' => [1],
-            'indexed' => [3],
+            'index' => [3],
         ];
 
         $this->assertSame($expected, $indexed->get('body'));
@@ -328,10 +334,10 @@ class SearchableBehaviorTest extends TestCase
         // Previous status
         $indexed = $behaviorTable->find()->where(['article_id' => 1])->first();
         $expected = [
-            'article' => [2],
-            'body' => [4],
+            'articl' => [2],
+            'bodi' => [4],
             'first' => [1],
-            'indexed' => [3],
+            'index' => [3],
         ];
         $this->assertSame($expected, $indexed->get('body'));
 
@@ -345,13 +351,9 @@ class SearchableBehaviorTest extends TestCase
 
         $bodyMsg = 'That is the new body to index.';
         $bodyVector = [
-            'body' => [5],
+            'bodi' => [5],
             'index' => [7],
-            'is' => [2],
             'new' => [4],
-            'that' => [1],
-            'the' => [3],
-            'to' => [6],
         ];
 
         $article = $table->get(2);
@@ -386,5 +388,43 @@ class SearchableBehaviorTest extends TestCase
         $this->assertNull($indexed);
         $article = $table->get(3);
         $table->delete($article);
+    }
+
+    public function testFindWithoutHighlight()
+    {
+        $table = $this->getTableLocator()->get('Articles');
+        $table->addBehavior('Autopage/PgSearch.Searchable');
+
+        $query = $table->find('fts', [
+            'field' => 'body',
+            'value' => 'articles',
+            'ranked' => false,
+        ]);
+
+        $expected = 'SELECT ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(\'articles\')';
+        $this->assertSame($expected, $query->sql());
+
+        $results = $query->all();
+        $this->assertSame(1, $results->count());
+
+        // $expected = [
+        //     'articl' => [2],
+        //     'bodi' => [4],
+        //     'first' => [1],
+        //     'index' => [3],
+        // ];
+        // $this->assertSame($expected, $results->first()->get('body'));
+
+        $query = $table->find('fts', [
+            'field' => 'body',
+            'value' => 'articles',
+            'ranked' => true,
+        ]);
+
+        $expected = 'SELECT (ts_rank_cd(\'body\', plainto_tsquery(\'articles\'), 2|4)) AS "_rank", ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(\'articles\') ORDER BY _rank desc';
+        $this->assertSame($expected, $query->sql());
+
+        $results = $query->all();
+        $this->assertSame(1, $results->count());
     }
 }

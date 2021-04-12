@@ -34,6 +34,14 @@ class TsvectorTypeTest extends TestCase
         parent::setUp();
         $this->type = TypeFactory::build('tsvector');
         $this->driver = $this->getMockBuilder('Cake\Database\Driver')->getMock();
+        $this->configBackup = Configure::read('PgSearch.config_name');
+    }
+
+    public function tearDown(): void
+    {
+        Configure::write('PgSearch.config_name', $this->configBackup);
+        TypeFactory::map('tsvector', TsvectorType::class);
+        TypeFactory::build('tsvector');
     }
 
     /**
@@ -181,7 +189,6 @@ class TsvectorTypeTest extends TestCase
         $this->assertSame(2, $result->count());
         $this->assertSame('to_tsvector(:param0)', $result->sql($binder));
 
-        $backup = Configure::read('PgSearch.config_name');
         Configure::write('PgSearch.config_name', 'pg_catalog.simple');
         TypeFactory::map('tsvector', TsvectorType::class);
         $this->type = TypeFactory::build('tsvector');
@@ -192,8 +199,6 @@ class TsvectorTypeTest extends TestCase
         $this->assertSame('to_tsvector', $result->getName());
         $this->assertSame(3, $result->count());
         $this->assertSame('to_tsvector(:param0, :param1)', $result->sql($binder));
-
-        Configure::write('PgSearch.config_name', $backup);
     }
 
     /**

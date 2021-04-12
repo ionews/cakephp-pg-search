@@ -204,6 +204,7 @@ class SearchableBehavior extends Behavior
 
         $options += $defaultOptions;
 
+        $query->repository($this->getRepository());
         $query->enableAutoFields();
 
         $searchConfig = $options['configuration'];
@@ -214,22 +215,29 @@ class SearchableBehavior extends Behavior
         $tsQuery = null;
         if (!empty($options['value'])) {
             $value = $options['value'];
-            $tsQuery = "{$tsFunciton}('{$searchConfig}', '{$value}')";
+            $prepend = $searchConfig ? "'{$searchConfig}', " : '';
+            $tsQuery = "{$tsFunciton}({$prepend}'{$value}')";
         }
 
         $selectedFields = [];
         if ($options['highlight']) {
-            $selectedFields['highlight'] = $query->func()->ts_headline([ // @phpstan-ignore-line
-                $searchConfig,  // Configuração para fazer o match
+            $headlineParams = [];
+            if ($searchConfig) {
+                $headlineParams[] = $searchConfig; // Configuração para fazer o match
+            }
+
+            $headlineParams += [
                 '{$highlightField}' => 'literal',  // Campo original para marcação
                 $tsQuery => 'literal', // Query para buscar o resultado e posições
                 'MaxFragments=3, MaxWords=50, MinWords=5, StartSel="<strong>", StopSel="</strong>",FragmentDelimiter="[...]"', // Configurações de formatação
-            ]);
+            ];
+
+            $selectedFields['highlight'] = $query->func()->ts_headline($headlineParams); // @phpstan-ignore-line
         }
 
         if ($options['ranked']) {
             $selectedFields['_rank'] = $query->func()->ts_rank_cd([ // @phpstan-ignore-line
-                '{$field}' => 'literal', // Campo ts_vector para rankear
+                "'{$field}'" => 'literal', // Campo ts_vector para rankear
                 $tsQuery => 'literal', // Query para o rankeamento
                 '2|4' => 'literal', // Normalização
                                     // 2 = divides the rank by the document length;

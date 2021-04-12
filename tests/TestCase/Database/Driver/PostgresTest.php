@@ -13,12 +13,14 @@ use Cake\TestSuite\TestCase;
 class PostgresDriverTest extends TestCase
 {
     /**
-     * Helper method for skipping tests that need a real connection.
+     * Setup
      *
      * @return void
      */
-    protected function _needsConnection()
+    public function setUp(): void
     {
+        parent::setUp();
+
         $config = ConnectionManager::getConfig('test');
         $this->skipIf(strpos($config['driver'], 'Postgres') === false, 'Not using Postgres for test config');
     }
@@ -30,8 +32,6 @@ class PostgresDriverTest extends TestCase
      */
     public function testSchemaDialect()
     {
-        $this->_needsConnection();
-
         $conn = ConnectionManager::get('test');
         $driver = $conn->getDriver();
 
