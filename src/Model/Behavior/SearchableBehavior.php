@@ -16,11 +16,15 @@ use ArrayObject;
 use Autopage\PgSearch\Exception\DeindexException;
 use Autopage\PgSearch\Exception\IndexException;
 use Autopage\PgSearch\Exception\SetupException;
+use Cake\Core\Configure;
+use Cake\Database\Expression\QueryExpression;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
 use Cake\ORM\Behavior;
 use Cake\ORM\Locator\LocatorAwareTrait;
+use Cake\ORM\Query;
 use Cake\ORM\Table;
+use Cake\Utility\Hash;
 use Cake\Utility\Inflector;
 use Throwable;
 
@@ -167,6 +171,109 @@ class SearchableBehavior extends Behavior
         } catch (Throwable $e) {
             throw new DeindexException("Falha ao excluir o registro vinculado a '{$pk}' de '{$sourceName}'. \nMotivo: " . $e->getMessage(), 500, $e);
         }
+    }
+
+    /**
+     * Define um finder capaz de construir uma query básica
+     * com highlight e ranqueamento via FTS.
+     *
+     * @param  \Cake\ORM\Query  $query   Query original
+     * @param  array  $options Configurações desse finder:
+     *  - field: Nome do campo do tipo tsvector onde a busca será feita
+     *  - value: Valor que deve ser comparado com o campo
+     *  - highlight: Flag indicando se deve ou não incluir destaque nos termos encontrados. Por padrão
+     *  é desativado.
+     *  - highlight_field: Nome do campo textual onde o highlight será aplicado
+     *  - exact: Se a comparação será do tipo exata ou aproximada. Por padrão é aproximada.
+     *  - configuration: Nome da configuração de busca usada na comparação. Por padrão, usa a mesma definida
+     *  em PgSearch.config_name.
+     *  - ranked: Flag indicando se a query deve ser ordenada por
+     * @return \Cake\ORM\Query
+     */
+    public function findFts(Query $query, array $options): Query
+    {
+        $defaultOptions = [
+            'field' => $this->getRepository()->getDisplayField(),
+            'value' => '',
+            'highlight' => false,
+            'highlight_field' => null,
+            'exact' => false,
+            'configuration' => Configure::read('PgSearch.config_name', null),
+            'ranked' => true,
+        ];
+
+        $options += $defaultOptions;
+
+        $query->repository($this->getRepository());
+        $query->enableAutoFields();
+        $query->addDefaultTypes($this->getRepository());
+
+        $searchConfig = $options['configuration'];
+        $tsFunciton = $options['exact'] ? 'phraseto_tsquery' : 'plainto_tsquery';
+        $field = $options['field'];
+        $highlightField = $options['highlight_field'];
+
+        $tsQuery = null;
+        if (!empty($options['value'])) {
+            $value = $options['value'];
+            $prepend = $searchConfig ? "'{$searchConfig}', " : '';
+            $tsQuery = "{$tsFunciton}({$prepend}'{$value}')";
+        }
+
+        $selectedFields = [];
+        if ($options['highlight']) {
+            $headlineParams = [];
+            if ($searchConfig) {
+                $headlineParams[] = $searchConfig; // Configuração para fazer o match
+            }
+
+            $headlineParams += [
+                $highlightField => 'literal',  // Campo original para marcação
+                $tsQuery => 'literal', // Query para buscar o resultado e posições
+                'MaxFragments=3, MaxWords=50, MinWords=5, StartSel="<strong>", StopSel="</strong>",FragmentDelimiter="[...]"', // Configurações de formatação
+            ];
+
+            $selectedFields['highlight'] = $query->func()->ts_headline($headlineParams); // @phpstan-ignore-line
+        }
+
+        if ($options['ranked']) {
+            $selectedFields['_rank'] = $query->func()->ts_rank_cd([ // @phpstan-ignore-line
+                $field => 'literal', // Campo ts_vector para rankear
+                $tsQuery => 'literal', // Query para o rankeamento
+                '2|4' => 'literal', // Normalização
+                                    // 2 = divides the rank by the document length;
+                                    // 4 = divides the rank by the mean harmonic distance between extents
+            ]);
+        }
+
+        if (!empty($selectedFields)) {
+            $query->select($selectedFields);
+        }
+
+        $query->where(function (QueryExpression $exp, Query $q) use ($tsQuery, $field) {
+            $conditions = [];
+
+            if ($tsQuery) {
+                $conditions[] = "{$field} @@ {$tsQuery}";
+            }
+
+            if (empty($conditions)) {
+                return [];
+            }
+
+            return $exp->and($conditions);
+        });
+
+        if ($options['ranked']) {
+            $order = [];
+            if (Hash::get($query->clause('select'), '_rank') !== null) {
+                $order['_rank'] = 'desc';
+            }
+
+            $query->order($order);
+        }
+
+        return $query;
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Autopage\PgSearch\Model\Behavior;
 
 use Autopage\PgSearch\Exception\SetupException;
+use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\TestCase;
 
 /**
@@ -20,6 +21,19 @@ class SearchableBehaviorTest extends TestCase
         'core.Articles',
         'plugin.Autopage\PgSearch.ArticlesSearches',
     ];
+
+    /**
+     * Setup
+     *
+     * @return void
+     */
+    public function setUp(): void
+    {
+        parent::setUp();
+
+        $config = ConnectionManager::getConfig('test');
+        $this->skipIf(strpos($config['driver'], 'Postgres') === false, 'Not using Postgres for test config');
+    }
 
     /**
      * Tests behavior with default options
@@ -122,7 +136,14 @@ class SearchableBehaviorTest extends TestCase
         $table->save($article);
 
         $articleIndexed = $behaviorTable->find()->where(['article_id' => 2])->first();
-        $this->assertSame($bodyMsg, $articleIndexed->get('body'));
+        $bodyVector = $articleIndexed->get('body');
+        $expected = [
+            'bodi' => [5],
+            'index' => [7],
+            'new' => [4],
+        ];
+
+        $this->assertSame($expected, $bodyVector);
     }
 
     /**
@@ -185,7 +206,7 @@ class SearchableBehaviorTest extends TestCase
     {
         $customMapper = function ($entity) {
             $entry = $this->getTableLocator()->get('ArticlesSearches')->newEmptyEntity();
-            $entry->body = mb_strtoupper($entity->body);
+            $entry->body = str_replace('index', 'idx', $entity->body);
             $entry->article_id = $entity->id;
 
             return $entry;
@@ -203,7 +224,14 @@ class SearchableBehaviorTest extends TestCase
         $table->save($article);
 
         $articleIndexed = $behaviorTable->find()->where(['article_id' => 2])->first();
-        $this->assertSame(mb_strtoupper($bodyMsg), $articleIndexed->get('body'));
+        $bodyVector = $articleIndexed->get('body');
+        $expected = [
+            'bodi' => [5],
+            'idx' => [7],
+            'new' => [4],
+        ];
+
+        $this->assertSame($expected, $bodyVector);
     }
 
     /**
@@ -271,7 +299,14 @@ class SearchableBehaviorTest extends TestCase
 
         // Previous status
         $indexed = $behaviorTable->find()->where(['article_id' => 1])->first();
-        $this->assertSame('First Article Indexed Body', $indexed->get('body'));
+        $expected = [
+            'articl' => [2],
+            'bodi' => [4],
+            'first' => [1],
+            'index' => [3],
+        ];
+
+        $this->assertSame($expected, $indexed->get('body'));
 
         $table->deindexEntity($article);
 
@@ -298,7 +333,13 @@ class SearchableBehaviorTest extends TestCase
 
         // Previous status
         $indexed = $behaviorTable->find()->where(['article_id' => 1])->first();
-        $this->assertSame('First Article Indexed Body', $indexed->get('body'));
+        $expected = [
+            'articl' => [2],
+            'bodi' => [4],
+            'first' => [1],
+            'index' => [3],
+        ];
+        $this->assertSame($expected, $indexed->get('body'));
 
         $article = $table->get(1);
         $article->set('body', 'Change without index.');
@@ -309,6 +350,12 @@ class SearchableBehaviorTest extends TestCase
         $this->assertNull($indexed);
 
         $bodyMsg = 'That is the new body to index.';
+        $bodyVector = [
+            'bodi' => [5],
+            'index' => [7],
+            'new' => [4],
+        ];
+
         $article = $table->get(2);
         $article->set('body', $bodyMsg);
 
@@ -316,7 +363,7 @@ class SearchableBehaviorTest extends TestCase
 
         // Indexing when conditions of 'doDeindex' are false
         $indexed = $behaviorTable->find()->where(['article_id' => 2])->first();
-        $this->assertSame($bodyMsg, $indexed->get('body'));
+        $this->assertSame($bodyVector, $indexed->get('body'));
     }
 
     /**
@@ -341,5 +388,143 @@ class SearchableBehaviorTest extends TestCase
         $this->assertNull($indexed);
         $article = $table->get(3);
         $table->delete($article);
+    }
+
+    /**
+     * Tests finder without highlight part
+     *
+     * @return void
+     */
+    public function testFindWithoutHighlight()
+    {
+        $table = $this->getTableLocator()->get('Articles');
+        $table->addBehavior('Autopage/PgSearch.Searchable');
+
+        // Unranked find
+        $query = $table->find('fts', [
+            'field' => 'body',
+            'value' => 'articles',
+            'ranked' => false,
+        ]);
+
+        $expected = 'SELECT ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body", ArticlesSearches.body_original AS "ArticlesSearches__body_original" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(\'articles\')';
+        $this->assertSame($expected, $query->sql());
+
+        $results = $query->all();
+        $this->assertSame(1, $results->count());
+
+        $expected = [
+            'articl' => [2],
+            'bodi' => [4],
+            'first' => [1],
+            'index' => [3],
+        ];
+
+        $result = $results->first();
+        $this->assertSame($expected, $result->get('body'));
+        $this->assertNull($result->get('_rank'));
+        $this->assertNull($result->get('highlight'));
+
+        // Ranked find
+        $query = $table->find('fts', [
+            'field' => 'body',
+            'value' => 'articles',
+            'ranked' => true,
+        ]);
+
+        $expected = 'SELECT (ts_rank_cd(body, plainto_tsquery(\'articles\'), 2|4)) AS "_rank", ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body", ArticlesSearches.body_original AS "ArticlesSearches__body_original" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(\'articles\') ORDER BY _rank desc';
+        $this->assertSame($expected, $query->sql());
+
+        $results = $query->all();
+        $this->assertSame(1, $results->count());
+
+        $expected = [
+            'articl' => [2],
+            'bodi' => [4],
+            'first' => [1],
+            'index' => [3],
+        ];
+
+        $result = $results->first();
+        $this->assertSame($expected, $result->get('body'));
+        $this->assertNotNull($result->get('_rank'));
+
+        // Without results
+        $query = $table->find('fts', [
+            'field' => 'body',
+            'value' => 'unbelivable',
+        ]);
+
+        $expected = 'SELECT (ts_rank_cd(body, plainto_tsquery(\'unbelivable\'), 2|4)) AS "_rank", ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body", ArticlesSearches.body_original AS "ArticlesSearches__body_original" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(\'unbelivable\') ORDER BY _rank desc';
+        $this->assertSame($expected, $query->sql());
+
+        $results = $query->all();
+        $this->assertSame(0, $results->count());
+    }
+
+    /**
+     * Tests finder with highlight part
+     *
+     * @return void
+     */
+    public function testFindWithHighlight()
+    {
+        $table = $this->getTableLocator()->get('Articles');
+        $table->addBehavior('Autopage/PgSearch.Searchable', [
+            'mapper' => function ($entity) {
+                $entry = $this->getTableLocator()->get('ArticlesSearches')->newEmptyEntity();
+                $entry->body = $entity->body;
+                $entry->body_original = $entity->body;
+                $entry->article_id = $entity->id;
+
+                return $entry;
+            },
+        ]);
+
+        $article = $table->newEntity([
+            'title' => 'Full Text Searching with Postgres',
+            'body' => 'Full Text Searching (or just text search) provides the capability to identify natural-language documents that satisfy a query, and optionally to sort them by relevance to the query.',
+        ]);
+        $table->save($article);
+
+        $term = 'provides identify';
+        $query = $table->find('fts', [
+            'field' => 'body',
+            'value' => $term,
+            'highlight' => true,
+            'highlight_field' => 'body_original',
+        ]);
+
+        $expected = 'SELECT (ts_headline(body_original, plainto_tsquery(\'' . $term . '\'), :param0)) AS "highlight", (ts_rank_cd(body, plainto_tsquery(\'' . $term . '\'), 2|4)) AS "_rank", ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body", ArticlesSearches.body_original AS "ArticlesSearches__body_original" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(\'' . $term . '\') ORDER BY _rank desc';
+        $this->assertSame($expected, $query->sql());
+
+        $results = $query->all();
+        $this->assertSame(1, $results->count());
+
+        $expected = [
+          'capabl' => [10],
+          'document' => [16],
+          'full' => [1],
+          'identifi' => [12],
+          'languag' => [15],
+          'natur' => [14],
+          'natural-languag' => [13],
+          'option' => [22],
+          'provid' => [8],
+          'queri' => [20, 30],
+          'relev' => [27],
+          'satisfi' => [18],
+          'search' => [3, 7],
+          'sort' => [24],
+          'text' => [2, 6],
+        ];
+
+        $result = $results->first();
+        $this->assertSame($expected, $result->get('body'));
+        $this->assertNotNull($result->get('_rank'));
+        $this->assertNotNull($result->get('highlight'));
+
+        $expected = 'Full Text Searching (or just text search) <strong>provides</strong> the capability to <strong>identify</strong> natural-language documents that satisfy a query, and optionally to sort them by relevance to the query';
+        $this->assertSame($expected, $result->get('highlight'));
     }
 }
