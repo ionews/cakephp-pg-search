@@ -390,41 +390,141 @@ class SearchableBehaviorTest extends TestCase
         $table->delete($article);
     }
 
+    /**
+     * Tests finder without highlight part
+     *
+     * @return void
+     */
     public function testFindWithoutHighlight()
     {
         $table = $this->getTableLocator()->get('Articles');
         $table->addBehavior('Autopage/PgSearch.Searchable');
 
+        // Unranked find
         $query = $table->find('fts', [
             'field' => 'body',
             'value' => 'articles',
             'ranked' => false,
         ]);
 
-        $expected = 'SELECT ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(\'articles\')';
+        $expected = 'SELECT ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body", ArticlesSearches.body_original AS "ArticlesSearches__body_original" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(\'articles\')';
         $this->assertSame($expected, $query->sql());
 
         $results = $query->all();
         $this->assertSame(1, $results->count());
 
-        // $expected = [
-        //     'articl' => [2],
-        //     'bodi' => [4],
-        //     'first' => [1],
-        //     'index' => [3],
-        // ];
-        // $this->assertSame($expected, $results->first()->get('body'));
+        $expected = [
+            'articl' => [2],
+            'bodi' => [4],
+            'first' => [1],
+            'index' => [3],
+        ];
 
+        $result = $results->first();
+        $this->assertSame($expected, $result->get('body'));
+        $this->assertNull($result->get('_rank'));
+        $this->assertNull($result->get('highlight'));
+
+        // Ranked find
         $query = $table->find('fts', [
             'field' => 'body',
             'value' => 'articles',
             'ranked' => true,
         ]);
 
-        $expected = 'SELECT (ts_rank_cd(\'body\', plainto_tsquery(\'articles\'), 2|4)) AS "_rank", ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(\'articles\') ORDER BY _rank desc';
+        $expected = 'SELECT (ts_rank_cd(body, plainto_tsquery(\'articles\'), 2|4)) AS "_rank", ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body", ArticlesSearches.body_original AS "ArticlesSearches__body_original" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(\'articles\') ORDER BY _rank desc';
         $this->assertSame($expected, $query->sql());
 
         $results = $query->all();
         $this->assertSame(1, $results->count());
+
+        $expected = [
+            'articl' => [2],
+            'bodi' => [4],
+            'first' => [1],
+            'index' => [3],
+        ];
+
+        $result = $results->first();
+        $this->assertSame($expected, $result->get('body'));
+        $this->assertNotNull($result->get('_rank'));
+
+        // Without results
+        $query = $table->find('fts', [
+            'field' => 'body',
+            'value' => 'unbelivable',
+        ]);
+
+        $expected = 'SELECT (ts_rank_cd(body, plainto_tsquery(\'unbelivable\'), 2|4)) AS "_rank", ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body", ArticlesSearches.body_original AS "ArticlesSearches__body_original" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(\'unbelivable\') ORDER BY _rank desc';
+        $this->assertSame($expected, $query->sql());
+
+        $results = $query->all();
+        $this->assertSame(0, $results->count());
+    }
+
+    /**
+     * Tests finder with highlight part
+     *
+     * @return void
+     */
+    public function testFindWithHighlight()
+    {
+        $table = $this->getTableLocator()->get('Articles');
+        $table->addBehavior('Autopage/PgSearch.Searchable', [
+            'mapper' => function ($entity) {
+                $entry = $this->getTableLocator()->get('ArticlesSearches')->newEmptyEntity();
+                $entry->body = $entity->body;
+                $entry->body_original = $entity->body;
+                $entry->article_id = $entity->id;
+
+                return $entry;
+            },
+        ]);
+
+        $article = $table->newEntity([
+            'title' => 'Full Text Searching with Postgres',
+            'body' => 'Full Text Searching (or just text search) provides the capability to identify natural-language documents that satisfy a query, and optionally to sort them by relevance to the query.',
+        ]);
+        $table->save($article);
+
+        $term = 'provides identify';
+        $query = $table->find('fts', [
+            'field' => 'body',
+            'value' => $term,
+            'highlight' => true,
+            'highlight_field' => 'body_original',
+        ]);
+
+        $expected = 'SELECT (ts_headline(body_original, plainto_tsquery(\'' . $term . '\'), :param0)) AS "highlight", (ts_rank_cd(body, plainto_tsquery(\'' . $term . '\'), 2|4)) AS "_rank", ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body", ArticlesSearches.body_original AS "ArticlesSearches__body_original" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(\'' . $term . '\') ORDER BY _rank desc';
+        $this->assertSame($expected, $query->sql());
+
+        $results = $query->all();
+        $this->assertSame(1, $results->count());
+
+        $expected = [
+          'capabl' => [10],
+          'document' => [16],
+          'full' => [1],
+          'identifi' => [12],
+          'languag' => [15],
+          'natur' => [14],
+          'natural-languag' => [13],
+          'option' => [22],
+          'provid' => [8],
+          'queri' => [20, 30],
+          'relev' => [27],
+          'satisfi' => [18],
+          'search' => [3, 7],
+          'sort' => [24],
+          'text' => [2, 6],
+        ];
+
+        $result = $results->first();
+        $this->assertSame($expected, $result->get('body'));
+        $this->assertNotNull($result->get('_rank'));
+        $this->assertNotNull($result->get('highlight'));
+
+        $expected = 'Full Text Searching (or just text search) <strong>provides</strong> the capability to <strong>identify</strong> natural-language documents that satisfy a query, and optionally to sort them by relevance to the query';
+        $this->assertSame($expected, $result->get('highlight'));
     }
 }

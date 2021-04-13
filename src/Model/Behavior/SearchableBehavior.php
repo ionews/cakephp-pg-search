@@ -206,6 +206,7 @@ class SearchableBehavior extends Behavior
 
         $query->repository($this->getRepository());
         $query->enableAutoFields();
+        $query->addDefaultTypes($this->getRepository());
 
         $searchConfig = $options['configuration'];
         $tsFunciton = $options['exact'] ? 'phraseto_tsquery' : 'plainto_tsquery';
@@ -227,7 +228,7 @@ class SearchableBehavior extends Behavior
             }
 
             $headlineParams += [
-                '{$highlightField}' => 'literal',  // Campo original para marcação
+                $highlightField => 'literal',  // Campo original para marcação
                 $tsQuery => 'literal', // Query para buscar o resultado e posições
                 'MaxFragments=3, MaxWords=50, MinWords=5, StartSel="<strong>", StopSel="</strong>",FragmentDelimiter="[...]"', // Configurações de formatação
             ];
@@ -237,7 +238,7 @@ class SearchableBehavior extends Behavior
 
         if ($options['ranked']) {
             $selectedFields['_rank'] = $query->func()->ts_rank_cd([ // @phpstan-ignore-line
-                "'{$field}'" => 'literal', // Campo ts_vector para rankear
+                $field => 'literal', // Campo ts_vector para rankear
                 $tsQuery => 'literal', // Query para o rankeamento
                 '2|4' => 'literal', // Normalização
                                     // 2 = divides the rank by the document length;

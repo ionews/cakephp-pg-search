@@ -17,6 +17,7 @@ class ArticlesSearchesFixture extends TestFixture
         'id' => ['type' => 'integer'],
         'article_id' => ['type' => 'integer', 'null' => true],
         'body' => ['type' => 'tsvector'],
+        'body_original' => ['type' => 'text'],
         '_constraints' => ['primary' => ['type' => 'primary', 'columns' => ['id']]],
     ];
 
