@@ -3,7 +3,6 @@
 [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE) 
 [![CI](https://github.com/ionews/cakephp-pg-search/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ionews/cakephp-pg-search/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/codecov/c/github/ionews/cakephp-pg-search?style=flat-square)](https://codecov.io/gh/ionews/cakephp-pg-search/branch/main)
-[![Code Consistency](https://squizlabs.github.io/PHP_CodeSniffer/analysis/ionews/cakephp-pg-search/grade.svg)](https://squizlabs.github.io/PHP_CodeSniffer/analysis/ionews/cakephp-pg-search/)
 [![Downloads](https://img.shields.io/packagist/dt/ionews/cakephp-pg-search.svg?style=flat-square)](https://packagist.org/packages/ionews/cakephp-pg-search)
 [![Latest Stable](https://img.shields.io/packagist/v/ionews/cakephp-pg-search.svg?style=flat-square&label=stable)](https://packagist.org/packages/ionews/cakephp-pg-search)
 
@@ -29,7 +28,7 @@ Para ter todos os recursos disponíveis, você deve configurar sua aplicação p
 
 ### Configuração
 
-No seu `app_local.php`
+No seu `app_local.php`:
 
 ```php
     // ...
@@ -40,6 +39,18 @@ No seu `app_local.php`
             // O restante da sua configuração vem normalmente
             // ...
         ],
+    // ...
+```
+
+Outra configuração importante, mas opcional, é definir qual [_configuração de busca_](https://www.postgresql.org/docs/current/textsearch-configuration.html) o PostgreSQL deve usar na hora de indexar ou buscar um campo do tipo `tsvector`.
+
+Você pode configurar ela com a chave `PgSearch.config_name`. Supondo que você criou no seu banco de dados uma configuração de nome **portuguese**, o seu `app_local.php` ficaria:
+
+```php
+    // ...
+    'PgSearch' => [
+        'config_name' => 'portuguese',
+    ],
     // ...
 ```
 
