@@ -1,6 +1,19 @@
 # Busca Textual com PostgreSQL no CakePHP
 
-[![pipeline status](https://git.autopage.inf.br/ionews/pg-search/badges/main/pipeline.svg)](https://git.autopage.inf.br/ionews/pg-search/-/commits/main) [![coverage report](https://git.autopage.inf.br/ionews/pg-search/badges/main/coverage.svg)](https://git.autopage.inf.br/ionews/pg-search/-/commits/main)
+[![License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE) 
+[![CI](https://github.com/ionews/cakephp-pg-search/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ionews/cakephp-pg-search/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/ionews/cakephp-pg-search?style=flat-square)](https://codecov.io/gh/ionews/cakephp-pg-search/branch/main)
+[![Code Consistency](https://squizlabs.github.io/PHP_CodeSniffer/analysis/ionews/cakephp-pg-search/grade.svg)](https://squizlabs.github.io/PHP_CodeSniffer/analysis/ionews/cakephp-pg-search/)
+[![Downloads](https://img.shields.io/packagist/dt/ionews/cakephp-pg-search.svg?style=flat-square)](https://packagist.org/packages/ionews/cakephp-pg-search)
+[![Latest Stable](https://img.shields.io/packagist/v/ionews/cakephp-pg-search.svg?style=flat-square&label=stable)](https://packagist.org/packages/ionews/cakephp-pg-search)
+
+Adicione suporte a [Full Text Search do Postgres](https://www.postgresql.org/docs/current/textsearch.html) em sua aplicação CakePHP.
+
+## Requisitos
+
+ - PHP 7.2+
+ - CakePHP 4.2+
+ - PostgreSQL 9.6+
 
 ## Instalar
 
@@ -32,7 +45,7 @@ No seu `app_local.php`
 
 ### SearchableBehavior
 
-Associe as tabelas que deseja tornar pesquisável ao behavior, desta forma, sempre que um registro for criado/editado/excluído, as informações são propagadas para a tabela de busca.
+Associe as tabelas que deseja tornar pesquisável ao behavior, desta forma, sempre que um registro for criado/editado/excluído, as informações serão propagadas para a tabela de busca.
 
 ```php
     /**

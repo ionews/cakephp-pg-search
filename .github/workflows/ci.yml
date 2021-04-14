@@ -74,6 +74,11 @@ jobs:
 
     - name: Run PHPUnit
       env:
+        CACHE_DEFAULT_URL: "array:///?prefix=default_"
+        CACHE_CAKECORE_URL: "array:///?prefix=core_"
+        CACHE_CAKEMODEL_URL: "array:///?prefix=model_"
+        CACHE_CAKEROUTES_URL: "array:///?prefix=routes_"
+        CACHE_THROTTLE_URL: "array:///?prefix=throttle_"
         db_dsn: Cake\Database\Connection://postgres:123@127.0.0.1/pgsearch?encoding=utf8&driver=Autopage\PgSearch\Database\Driver\Postgres
       run: |
         if [[ ${{ matrix.php-version }} == '7.4' ]]; then
@@ -120,3 +125,7 @@ jobs:
 
     - name: Run PHP CodeSniffer
       run: vendor/bin/phpcs --report=checkstyle src/ tests/ | cs2pr
+
+    - name: Run phpstan
+      if: success() || failure()
+      run: vendor/bin/phpstan.phar analyse --error-format=github
