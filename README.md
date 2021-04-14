@@ -11,7 +11,7 @@ Adicione suporte a [Full Text Search do Postgres](https://www.postgresql.org/doc
 ## Requisitos
 
  - PHP 7.2+
- - CakePHP 4.1+
+ - CakePHP 4.2.2+
  - PostgreSQL 9.6+
 
 ## Instalar
