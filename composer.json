@@ -9,7 +9,7 @@
     },
     "require-dev": {
         "cakephp/cakephp-codesniffer": "^4.0",
-        "phpunit/phpunit": "^8.0",
+        "phpunit/phpunit": "^8.5",
         "phpstan/phpstan": "^0.12.34"
     },
     "autoload": {
