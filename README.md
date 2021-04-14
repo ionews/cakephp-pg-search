@@ -3,8 +3,8 @@
 [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE) 
 [![CI](https://github.com/ionews/cakephp-pg-search/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ionews/cakephp-pg-search/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/codecov/c/github/ionews/cakephp-pg-search?style=flat-square)](https://codecov.io/gh/ionews/cakephp-pg-search/branch/main)
-[![Downloads](https://img.shields.io/packagist/dt/ionews/cakephp-pg-search.svg?style=flat-square)](https://packagist.org/packages/ionews/cakephp-pg-search)
-[![Latest Stable](https://img.shields.io/packagist/v/ionews/cakephp-pg-search.svg?style=flat-square&label=stable)](https://packagist.org/packages/ionews/cakephp-pg-search)
+[![Downloads](https://img.shields.io/packagist/dt/autopage/pg-search.svg?style=flat-square)](https://packagist.org/packages/autopage/pg-search)
+[![Latest Stable](https://img.shields.io/packagist/v/autopage/pg-search.svg?style=flat-square&label=stable)](https://packagist.org/packages/autopage/pg-search)
 
 Adicione suporte a [Full Text Search do Postgres](https://www.postgresql.org/docs/current/textsearch.html) em sua aplicação CakePHP.
 
