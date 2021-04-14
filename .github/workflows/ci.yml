@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  testsuite:
+    runs-on: ubuntu-18.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['7.2', '7.4', '8.0']
+        prefer-lowest: ['']
+        include:
+          - php-version: '7.2'
+            prefer-lowest: 'prefer-lowest'
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: 123
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: mbstring, intl, apcu, pdo_pgsql
+        ini-values: apc.enable_cli = 1
+        coverage: pcov
+
+    - name: Get composer cache directory
+      id: composer-cache
+      run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+    - name: Get date part for cache key
+      id: key-date
+      run: echo "::set-output name=date::$(date +'%Y-%m')"
+
+    - name: Cache composer dependencies
+      uses: actions/cache@v1
+      with:
+        path: ${{ steps.composer-cache.outputs.dir }}
+        key: ${{ runner.os }}-composer-${{ steps.key-date.outputs.date }}-${{ hashFiles('composer.json') }}-${{ matrix.prefer-lowest }}
+
+    - name: Composer install
+      run: |
+        if ${{ matrix.prefer-lowest == 'prefer-lowest' }}; then
+          composer update --prefer-lowest --prefer-stable
+        else
+          composer install
+        fi
+
+    - name: Setup problem matchers for PHPUnit
+      if: matrix.php-version == '7.4'
+      run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
+    - name: Run PHPUnit
+      env:
+        db_dsn: Cake\Database\Connection://postgres:123@127.0.0.1/pgsearch?encoding=utf8&driver=Autopage\PgSearch\Database\Driver\Postgres
+      run: |
+        if [[ ${{ matrix.php-version }} == '7.4' ]]; then
+          export CODECOVERAGE=1 && vendor/bin/phpunit --verbose --coverage-clover=coverage.xml
+        else
+          vendor/bin/phpunit
+        fi
+
+    - name: Submit code coverage
+      if: matrix.php-version == '7.4'
+      uses: codecov/codecov-action@v1
+
+  cs-stan:
+    name: Coding Standard & Static Analysis
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '7.2'
+        extensions: mbstring, intl, apcu
+        tools: cs2pr
+        coverage: none
+
+    - name: Get composer cache directory
+      id: composer-cache
+      run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+    - name: Get date part for cache key
+      id: key-date
+      run: echo "::set-output name=date::$(date +'%Y-%m')"
+
+    - name: Cache composer dependencies
+      uses: actions/cache@v1
+      with:
+        path: ${{ steps.composer-cache.outputs.dir }}
+        key: ${{ runner.os }}-composer-${{ steps.key-date.outputs.date }}-${{ hashFiles('composer.json') }}-${{ matrix.prefer-lowest }}
+
+    - name: Composer install
+      run: composer install
+
+    - name: Run PHP CodeSniffer
+      run: vendor/bin/phpcs --report=checkstyle src/ tests/ | cs2pr
