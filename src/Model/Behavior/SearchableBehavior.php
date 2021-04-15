@@ -38,7 +38,7 @@ class SearchableBehavior extends Behavior
      *  - target: string. Nome do repositório (Table) que deve ser usada para
      *  persistir os registros de forma pesquisável. Por padrão usa uma Table com
      *  nome igual a que está vinculada ao Behavior, adicionado o sufixo
-     *  'Search'. Exemplo: Posts -> PostsSearch.
+     *  'Searches'. Exemplo: Posts -> PostsSearches.
      *  - foreign_key: string. Nome da coluna em _target_ que referencia o registro
      *  original. Por padrão usa o nome da tabela no singular adicionado o sufixo '_id'.
      *  Exemplo: Posts -> post_id
@@ -187,7 +187,7 @@ class SearchableBehavior extends Behavior
      *  - exact: Se a comparação será do tipo exata ou aproximada. Por padrão é aproximada.
      *  - configuration: Nome da configuração de busca usada na comparação. Por padrão, usa a mesma definida
      *  em PgSearch.config_name.
-     *  - ranked: Flag indicando se a query deve ser ordenada por
+     *  - ranked: Flag indicando se a query deve ser ordenada por score FTS.
      * @return \Cake\ORM\Query
      */
     public function findFts(Query $query, array $options): Query
@@ -281,7 +281,7 @@ class SearchableBehavior extends Behavior
      *
      * Utiliza primeiro a configuração 'target' como nome do repositório.
      * Se não estiver configurado, utiliza com fallback o nome da tabela
-     * vinculada + sufixo 'Search'.
+     * vinculada + sufixo 'Searches'.
      *
      * @return \Cake\ORM\Table
      */
