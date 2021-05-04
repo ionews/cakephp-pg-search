@@ -407,7 +407,7 @@ class SearchableBehaviorTest extends TestCase
             'ranked' => false,
         ]);
 
-        $expected = 'SELECT ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body", ArticlesSearches.body_original AS "ArticlesSearches__body_original" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(\'articles\')';
+        $expected = 'SELECT ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body", ArticlesSearches.body_original AS "ArticlesSearches__body_original" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(:search_value)';
         $this->assertSame($expected, $query->sql());
 
         $results = $query->all();
@@ -432,7 +432,7 @@ class SearchableBehaviorTest extends TestCase
             'ranked' => true,
         ]);
 
-        $expected = 'SELECT (ts_rank_cd(body, plainto_tsquery(\'articles\'), 2|4)) AS "_rank", ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body", ArticlesSearches.body_original AS "ArticlesSearches__body_original" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(\'articles\') ORDER BY _rank desc';
+        $expected = 'SELECT (ts_rank_cd(body, plainto_tsquery(:search_value), 2|4)) AS "_rank", ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body", ArticlesSearches.body_original AS "ArticlesSearches__body_original" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(:search_value) ORDER BY _rank desc';
         $this->assertSame($expected, $query->sql());
 
         $results = $query->all();
@@ -455,7 +455,7 @@ class SearchableBehaviorTest extends TestCase
             'value' => 'unbelivable',
         ]);
 
-        $expected = 'SELECT (ts_rank_cd(body, plainto_tsquery(\'unbelivable\'), 2|4)) AS "_rank", ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body", ArticlesSearches.body_original AS "ArticlesSearches__body_original" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(\'unbelivable\') ORDER BY _rank desc';
+        $expected = 'SELECT (ts_rank_cd(body, plainto_tsquery(:search_value), 2|4)) AS "_rank", ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body", ArticlesSearches.body_original AS "ArticlesSearches__body_original" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(:search_value) ORDER BY _rank desc';
         $this->assertSame($expected, $query->sql());
 
         $results = $query->all();
@@ -495,7 +495,7 @@ class SearchableBehaviorTest extends TestCase
             'highlight_field' => 'body_original',
         ]);
 
-        $expected = 'SELECT (ts_headline(body_original, plainto_tsquery(\'' . $term . '\'), :param0)) AS "highlight", (ts_rank_cd(body, plainto_tsquery(\'' . $term . '\'), 2|4)) AS "_rank", ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body", ArticlesSearches.body_original AS "ArticlesSearches__body_original" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(\'' . $term . '\') ORDER BY _rank desc';
+        $expected = 'SELECT (ts_headline(body_original, plainto_tsquery(:search_value), :param0)) AS "highlight", (ts_rank_cd(body, plainto_tsquery(:search_value), 2|4)) AS "_rank", ArticlesSearches.id AS "ArticlesSearches__id", ArticlesSearches.article_id AS "ArticlesSearches__article_id", ArticlesSearches.body AS "ArticlesSearches__body", ArticlesSearches.body_original AS "ArticlesSearches__body_original" FROM articles_searches ArticlesSearches WHERE body @@ plainto_tsquery(:search_value) ORDER BY _rank desc';
         $this->assertSame($expected, $query->sql());
 
         $results = $query->all();
