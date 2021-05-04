@@ -217,7 +217,7 @@ class SearchableBehavior extends Behavior
         if (!empty($options['value'])) {
             $value = $options['value'];
             $prepend = $searchConfig ? "'{$searchConfig}', " : '';
-            $tsQuery = "{$tsFunciton}({$prepend}'{$value}')";
+            $tsQuery = "{$tsFunciton}({$prepend}:search_value)";
         }
 
         $selectedFields = [];
@@ -263,6 +263,10 @@ class SearchableBehavior extends Behavior
 
             return $exp->and($conditions);
         });
+
+        if ($tsQuery) {
+            $query->bind(':search_value', $options['value'], 'string');
+        }
 
         if ($options['ranked']) {
             $order = [];
