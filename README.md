@@ -100,6 +100,7 @@ Os parâmetros especiais desse _finder_ são:
  - **highlight**: `boolean`. Flag indicando se deve ou não incluir destaque nos termos encontrados. Por padrão é desativado.
  - **highlight_field**: `string` (_obrigatório_ apenas se **highlight** for `true`). Nome do campo textual onde o highlight será aplicado
  - **exact**: `boolean`. Se a comparação será do tipo exata ou aproximada. Por padrão é aproximada (`false`).
+ - **ts_function**: `string`. Caso seja necessário utilizar uma função diferente da aproximada ou exata para parseamento.
  - **configuration**: `string`. Nome da configuração de busca usada na comparação. Por padrão, usa a mesma definida em `PgSearch.config_name`.
  - **ranked**: `boolean`. Flag indicando se a _query_ deve ser ordenada por _score_.
 

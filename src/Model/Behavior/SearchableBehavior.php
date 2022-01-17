@@ -185,6 +185,7 @@ class SearchableBehavior extends Behavior
      *  é desativado.
      *  - highlight_field: Nome do campo textual onde o highlight será aplicado
      *  - exact: Se a comparação será do tipo exata ou aproximada. Por padrão é aproximada.
+     *  - ts_function: Caso seja necessário utilizar uma função diferente da aproximada ou exata para parseamento.
      *  - configuration: Nome da configuração de busca usada na comparação. Por padrão, usa a mesma definida
      *  em PgSearch.config_name.
      *  - ranked: Flag indicando se a query deve ser ordenada por score FTS.
@@ -198,6 +199,7 @@ class SearchableBehavior extends Behavior
             'highlight' => false,
             'highlight_field' => null,
             'exact' => false,
+            'ts_function' => '',
             'configuration' => Configure::read('PgSearch.config_name', null),
             'ranked' => true,
         ];
@@ -209,7 +211,7 @@ class SearchableBehavior extends Behavior
         $query->addDefaultTypes($this->getRepository());
 
         $searchConfig = $options['configuration'];
-        $tsFunciton = $options['exact'] ? 'phraseto_tsquery' : 'plainto_tsquery';
+        $tsFunction = $options['ts_function'] ?: ($options['exact'] ? 'phraseto_tsquery' : 'plainto_tsquery');
         $field = $options['field'];
         $highlightField = $options['highlight_field'];
 
@@ -217,7 +219,7 @@ class SearchableBehavior extends Behavior
         if (!empty($options['value'])) {
             $value = $options['value'];
             $prepend = $searchConfig ? "'{$searchConfig}', " : '';
-            $tsQuery = "{$tsFunciton}({$prepend}:search_value)";
+            $tsQuery = "{$tsFunction}({$prepend}:search_value)";
         }
 
         $selectedFields = [];
