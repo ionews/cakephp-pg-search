@@ -234,7 +234,7 @@ class SearchableBehavior extends Behavior
                 $tsQuery => 'literal', // Query para buscar o resultado e posições
             ];
 
-            $headlineParams[] = 'MaxFragments=3, MaxWords=50, MinWords=5, StartSel="<strong>", StopSel="</strong>",FragmentDelimiter="[...]"', // Configurações de formatação
+            $headlineParams[] = 'MaxFragments=3, MaxWords=50, MinWords=5, StartSel="<strong>", StopSel="</strong>",FragmentDelimiter="[...]"'; // Configurações de formatação
 
             $selectedFields['highlight'] = $query->func()->ts_headline($headlineParams); // @phpstan-ignore-line
         }
